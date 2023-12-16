@@ -6,6 +6,6 @@ datealgo-rs is based on https://github.com/cassioneri/eaf
 currently only supports posix based operating systems.
 
 ## TODO
-* wasm: zig build test -Dtarget=wasm32-wasi -fwasmtime
-* windows: zig build test -Dtarget=x86_64-windows -fwine
+* wasm: `zig build test -Dtarget=wasm32-wasi -fwasmtime`
+* windows: `zig build test -Dtarget=x86_64-windows -fwine`
 * other non posix?
