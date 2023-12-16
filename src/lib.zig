@@ -22,7 +22,7 @@
 //!
 //! try expectEqual(date.date_to_rd(1970, 1, 1), 0);
 //! try expectEqual(date.date_to_rd(2023, 5, 12), 19489);
-//! try expectEqual(date.rd_to_date(19489), (2023, 5, 12));
+//! try expectEqual(date.rd_to_date(19489), .{2023, 5, 12});
 //! ```
 //!
 //! For convenience, there is also converters to and from Unix timestamps:
@@ -33,12 +33,8 @@
 //! try expectEqual(date.datetime_to_secs(1970, 1, 1, 0, 0, 0), 0);
 //! try expectEqual(date.datetime_to_secs(2023, 5, 20, 9, 24, 38), 1684574678);
 //! try expectEqual(date.secs_to_datetime(1684574678), .{2023, 5, 20, 9, 24, 38});
-//! ```
 //!
-//! If the `std` feature is enabled, there are also converters to and from
-//! `Instant`:
-//!
-//! ```
+//! // conversions to and from sytem times represented as `std.time.Instant`
 //! try expectEqual(systemtime_to_datetime(UNIX_EPOCH), .{1970, 1, 1, 0, 0, 0, 0});
 //! try expectEqual(systemtime_to_datetime(instant_from_secs(1684574678)), .{2023, 5, 20, 9, 24, 38, 0});
 //! try expectEqual(datetime_to_systemtime(2023, 5, 20, 9, 24, 38, 0), instant_from_secs(1684574678));
