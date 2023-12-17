@@ -3,7 +3,14 @@ pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
     const mod = b.addModule("date-zig", .{ .source_file = .{ .path = "src/lib.zig" } });
-
+    const lib = b.addStaticLibrary(.{
+        .root_source_file = .{ .path = "src/lib.zig" },
+        .name = "date-zig",
+        .target = target,
+        .optimize = optimize,
+    });
+    lib.pie = true;
+    b.installArtifact(lib);
     const tests = b.addTest(.{
         .root_source_file = .{ .path = "src/tests.zig" },
         .target = target,
