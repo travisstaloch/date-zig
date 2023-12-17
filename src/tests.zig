@@ -7,8 +7,8 @@ const std = @import("std");
 
 const date = @import("date-zig");
 const UNIX_EPOCH = date.UNIX_EPOCH;
-
-fn expectEqual(a: anytype, b: anytype) !void {
+const ymd = date.Ymd.init;
+pub fn expectEqual(a: anytype, b: anytype) !void {
     const T = @TypeOf(a, b);
     return std.testing.expectEqual(@as(T, b), @as(T, a));
 }
@@ -32,12 +32,12 @@ test date_to_rd {
 
 const rd_to_date = date.rd_to_date;
 test rd_to_date {
-    try expectEqual(rd_to_date(-719468), .{ 0, 3, 1 });
-    try expectEqual(rd_to_date(0), .{ 1970, 1, 1 });
-    try expectEqual(rd_to_date(-12687794), .{ @as(i32, std.math.minInt(i16)), 1, 1 });
-    try expectEqual(rd_to_date(11248737), .{ @as(i32, std.math.maxInt(i16)), 12, 31 });
-    try expectEqual(rd_to_date(-12687795), .{ @as(i32, std.math.minInt(i16)) - 1, 12, 31 });
-    try expectEqual(rd_to_date(11248738), .{ @as(i32, std.math.maxInt(i16)) + 1, 1, 1 });
+    try expectEqual(rd_to_date(-719468), ymd(0, 3, 1));
+    try expectEqual(rd_to_date(0), ymd(1970, 1, 1));
+    try expectEqual(rd_to_date(-12687794), ymd(@as(i32, std.math.minInt(i16)), 1, 1));
+    try expectEqual(rd_to_date(11248737), ymd(@as(i32, std.math.maxInt(i16)), 12, 31));
+    try expectEqual(rd_to_date(-12687795), ymd(@as(i32, std.math.minInt(i16)) - 1, 12, 31));
+    try expectEqual(rd_to_date(11248738), ymd(@as(i32, std.math.maxInt(i16)) + 1, 1, 1));
 }
 
 const rd_to_weekday = date.rd_to_weekday;
@@ -85,32 +85,32 @@ test date_to_weekday {
 
 const next_date = date.next_date;
 test next_date {
-    try expectEqual(next_date(2021, 1, 1), .{ 2021, 1, 2 });
-    try expectEqual(next_date(-2021, 1, 1), .{ -2021, 1, 2 });
-    try expectEqual(next_date(2021, 2, 28), .{ 2021, 3, 1 });
-    try expectEqual(next_date(2021, 4, 30), .{ 2021, 5, 1 });
-    try expectEqual(next_date(2021, 5, 31), .{ 2021, 6, 1 });
-    try expectEqual(next_date(2021, 1, 31), .{ 2021, 2, 1 });
-    try expectEqual(next_date(2021, 12, 31), .{ 2022, 1, 1 });
-    try expectEqual(next_date(2020, 2, 28), .{ 2020, 2, 29 });
-    try expectEqual(next_date(2020, 2, 29), .{ 2020, 3, 1 });
-    try expectEqual(next_date(-2020, 2, 28), .{ -2020, 2, 29 });
-    try expectEqual(next_date(-2020, 2, 29), .{ -2020, 3, 1 });
+    try expectEqual(next_date(2021, 1, 1), ymd(2021, 1, 2));
+    try expectEqual(next_date(-2021, 1, 1), ymd(-2021, 1, 2));
+    try expectEqual(next_date(2021, 2, 28), ymd(2021, 3, 1));
+    try expectEqual(next_date(2021, 4, 30), ymd(2021, 5, 1));
+    try expectEqual(next_date(2021, 5, 31), ymd(2021, 6, 1));
+    try expectEqual(next_date(2021, 1, 31), ymd(2021, 2, 1));
+    try expectEqual(next_date(2021, 12, 31), ymd(2022, 1, 1));
+    try expectEqual(next_date(2020, 2, 28), ymd(2020, 2, 29));
+    try expectEqual(next_date(2020, 2, 29), ymd(2020, 3, 1));
+    try expectEqual(next_date(-2020, 2, 28), ymd(-2020, 2, 29));
+    try expectEqual(next_date(-2020, 2, 29), ymd(-2020, 3, 1));
 }
 
 const prev_date = date.prev_date;
 test prev_date {
-    try expectEqual(prev_date(2021, 1, 1), .{ 2020, 12, 31 });
-    try expectEqual(prev_date(-2021, 1, 1), .{ -2022, 12, 31 });
-    try expectEqual(prev_date(2021, 3, 1), .{ 2021, 2, 28 });
-    try expectEqual(prev_date(2021, 5, 1), .{ 2021, 4, 30 });
-    try expectEqual(prev_date(2021, 6, 1), .{ 2021, 5, 31 });
-    try expectEqual(prev_date(2021, 2, 1), .{ 2021, 1, 31 });
-    try expectEqual(prev_date(2022, 1, 1), .{ 2021, 12, 31 });
-    try expectEqual(prev_date(2020, 2, 29), .{ 2020, 2, 28 });
-    try expectEqual(prev_date(2020, 3, 1), .{ 2020, 2, 29 });
-    try expectEqual(prev_date(-2020, 2, 29), .{ -2020, 2, 28 });
-    try expectEqual(prev_date(-2020, 3, 1), .{ -2020, 2, 29 });
+    try expectEqual(prev_date(2021, 1, 1), ymd(2020, 12, 31));
+    try expectEqual(prev_date(-2021, 1, 1), ymd(-2022, 12, 31));
+    try expectEqual(prev_date(2021, 3, 1), ymd(2021, 2, 28));
+    try expectEqual(prev_date(2021, 5, 1), ymd(2021, 4, 30));
+    try expectEqual(prev_date(2021, 6, 1), ymd(2021, 5, 31));
+    try expectEqual(prev_date(2021, 2, 1), ymd(2021, 1, 31));
+    try expectEqual(prev_date(2022, 1, 1), ymd(2021, 12, 31));
+    try expectEqual(prev_date(2020, 2, 29), ymd(2020, 2, 28));
+    try expectEqual(prev_date(2020, 3, 1), ymd(2020, 2, 29));
+    try expectEqual(prev_date(-2020, 2, 29), ymd(-2020, 2, 28));
+    try expectEqual(prev_date(-2020, 3, 1), ymd(-2020, 2, 29));
 }
 
 const secs_to_dhms = date.secs_to_dhms;
@@ -204,32 +204,32 @@ test days_in_month {
 
 const rd_to_isoweekdate = date.rd_to_isoweekdate;
 test rd_to_isoweekdate {
-    try expectEqual(rd_to_isoweekdate(date_to_rd(-4, 12, 30)), .{ -3, 1, 1 });
-    try expectEqual(rd_to_isoweekdate(date_to_rd(-4, 12, 31)), .{ -3, 1, 2 });
-    try expectEqual(rd_to_isoweekdate(date_to_rd(-3, 1, 1)), .{ -3, 1, 3 });
-    try expectEqual(rd_to_isoweekdate(date_to_rd(-1, 12, 31)), .{ -1, 52, 5 });
-    try expectEqual(rd_to_isoweekdate(date_to_rd(0, 1, 1)), .{ -1, 52, 6 });
-    try expectEqual(rd_to_isoweekdate(date_to_rd(0, 1, 2)), .{ -1, 52, 7 });
-    try expectEqual(rd_to_isoweekdate(date_to_rd(0, 1, 3)), .{ 0, 1, 1 });
-    try expectEqual(rd_to_isoweekdate(date_to_rd(1970, 1, 1)), .{ 1970, 1, 4 });
-    try expectEqual(rd_to_isoweekdate(date_to_rd(1977, 1, 1)), .{ 1976, 53, 6 });
-    try expectEqual(rd_to_isoweekdate(date_to_rd(1977, 1, 2)), .{ 1976, 53, 7 });
-    try expectEqual(rd_to_isoweekdate(date_to_rd(1977, 12, 31)), .{ 1977, 52, 6 });
-    try expectEqual(rd_to_isoweekdate(date_to_rd(1978, 1, 1)), .{ 1977, 52, 7 });
-    try expectEqual(rd_to_isoweekdate(date_to_rd(1978, 1, 2)), .{ 1978, 1, 1 });
-    try expectEqual(rd_to_isoweekdate(date_to_rd(1978, 12, 31)), .{ 1978, 52, 7 });
-    try expectEqual(rd_to_isoweekdate(date_to_rd(1979, 1, 1)), .{ 1979, 1, 1 });
-    try expectEqual(rd_to_isoweekdate(date_to_rd(1979, 12, 30)), .{ 1979, 52, 7 });
-    try expectEqual(rd_to_isoweekdate(date_to_rd(1979, 12, 31)), .{ 1980, 1, 1 });
-    try expectEqual(rd_to_isoweekdate(date_to_rd(1980, 1, 1)), .{ 1980, 1, 2 });
-    try expectEqual(rd_to_isoweekdate(date_to_rd(1980, 12, 28)), .{ 1980, 52, 7 });
-    try expectEqual(rd_to_isoweekdate(date_to_rd(1980, 12, 29)), .{ 1981, 1, 1 });
-    try expectEqual(rd_to_isoweekdate(date_to_rd(1980, 12, 30)), .{ 1981, 1, 2 });
-    try expectEqual(rd_to_isoweekdate(date_to_rd(1980, 12, 31)), .{ 1981, 1, 3 });
-    try expectEqual(rd_to_isoweekdate(date_to_rd(1981, 1, 1)), .{ 1981, 1, 4 });
-    try expectEqual(rd_to_isoweekdate(date_to_rd(1981, 12, 31)), .{ 1981, 53, 4 });
-    try expectEqual(rd_to_isoweekdate(date_to_rd(1982, 1, 1)), .{ 1981, 53, 5 });
-    try expectEqual(rd_to_isoweekdate(date_to_rd(1982, 1, 2)), .{ 1981, 53, 6 });
+    try expectEqual(rd_to_isoweekdate(date_to_rd(-4, 12, 30)), ymd(-3, 1, 1));
+    try expectEqual(rd_to_isoweekdate(date_to_rd(-4, 12, 31)), ymd(-3, 1, 2));
+    try expectEqual(rd_to_isoweekdate(date_to_rd(-3, 1, 1)), ymd(-3, 1, 3));
+    try expectEqual(rd_to_isoweekdate(date_to_rd(-1, 12, 31)), ymd(-1, 52, 5));
+    try expectEqual(rd_to_isoweekdate(date_to_rd(0, 1, 1)), ymd(-1, 52, 6));
+    try expectEqual(rd_to_isoweekdate(date_to_rd(0, 1, 2)), ymd(-1, 52, 7));
+    try expectEqual(rd_to_isoweekdate(date_to_rd(0, 1, 3)), ymd(0, 1, 1));
+    try expectEqual(rd_to_isoweekdate(date_to_rd(1970, 1, 1)), ymd(1970, 1, 4));
+    try expectEqual(rd_to_isoweekdate(date_to_rd(1977, 1, 1)), ymd(1976, 53, 6));
+    try expectEqual(rd_to_isoweekdate(date_to_rd(1977, 1, 2)), ymd(1976, 53, 7));
+    try expectEqual(rd_to_isoweekdate(date_to_rd(1977, 12, 31)), ymd(1977, 52, 6));
+    try expectEqual(rd_to_isoweekdate(date_to_rd(1978, 1, 1)), ymd(1977, 52, 7));
+    try expectEqual(rd_to_isoweekdate(date_to_rd(1978, 1, 2)), ymd(1978, 1, 1));
+    try expectEqual(rd_to_isoweekdate(date_to_rd(1978, 12, 31)), ymd(1978, 52, 7));
+    try expectEqual(rd_to_isoweekdate(date_to_rd(1979, 1, 1)), ymd(1979, 1, 1));
+    try expectEqual(rd_to_isoweekdate(date_to_rd(1979, 12, 30)), ymd(1979, 52, 7));
+    try expectEqual(rd_to_isoweekdate(date_to_rd(1979, 12, 31)), ymd(1980, 1, 1));
+    try expectEqual(rd_to_isoweekdate(date_to_rd(1980, 1, 1)), ymd(1980, 1, 2));
+    try expectEqual(rd_to_isoweekdate(date_to_rd(1980, 12, 28)), ymd(1980, 52, 7));
+    try expectEqual(rd_to_isoweekdate(date_to_rd(1980, 12, 29)), ymd(1981, 1, 1));
+    try expectEqual(rd_to_isoweekdate(date_to_rd(1980, 12, 30)), ymd(1981, 1, 2));
+    try expectEqual(rd_to_isoweekdate(date_to_rd(1980, 12, 31)), ymd(1981, 1, 3));
+    try expectEqual(rd_to_isoweekdate(date_to_rd(1981, 1, 1)), ymd(1981, 1, 4));
+    try expectEqual(rd_to_isoweekdate(date_to_rd(1981, 12, 31)), ymd(1981, 53, 4));
+    try expectEqual(rd_to_isoweekdate(date_to_rd(1982, 1, 1)), ymd(1981, 53, 5));
+    try expectEqual(rd_to_isoweekdate(date_to_rd(1982, 1, 2)), ymd(1981, 53, 6));
 }
 
 const isoweekdate_to_rd = date.isoweekdate_to_rd;
@@ -264,62 +264,62 @@ test isoweekdate_to_rd {
 
 const date_to_isoweekdate = date.date_to_isoweekdate;
 test date_to_isoweekdate {
-    try expectEqual(date_to_isoweekdate(-4, 12, 30), .{ -3, 1, 1 });
-    try expectEqual(date_to_isoweekdate(-4, 12, 31), .{ -3, 1, 2 });
-    try expectEqual(date_to_isoweekdate(-3, 1, 1), .{ -3, 1, 3 });
-    try expectEqual(date_to_isoweekdate(-1, 12, 31), .{ -1, 52, 5 });
-    try expectEqual(date_to_isoweekdate(0, 1, 1), .{ -1, 52, 6 });
-    try expectEqual(date_to_isoweekdate(0, 1, 2), .{ -1, 52, 7 });
-    try expectEqual(date_to_isoweekdate(0, 1, 3), .{ 0, 1, 1 });
-    try expectEqual(date_to_isoweekdate(1970, 1, 1), .{ 1970, 1, 4 });
-    try expectEqual(date_to_isoweekdate(1977, 1, 1), .{ 1976, 53, 6 });
-    try expectEqual(date_to_isoweekdate(1977, 1, 2), .{ 1976, 53, 7 });
-    try expectEqual(date_to_isoweekdate(1977, 12, 31), .{ 1977, 52, 6 });
-    try expectEqual(date_to_isoweekdate(1978, 1, 1), .{ 1977, 52, 7 });
-    try expectEqual(date_to_isoweekdate(1978, 1, 2), .{ 1978, 1, 1 });
-    try expectEqual(date_to_isoweekdate(1978, 12, 31), .{ 1978, 52, 7 });
-    try expectEqual(date_to_isoweekdate(1979, 1, 1), .{ 1979, 1, 1 });
-    try expectEqual(date_to_isoweekdate(1979, 12, 30), .{ 1979, 52, 7 });
-    try expectEqual(date_to_isoweekdate(1979, 12, 31), .{ 1980, 1, 1 });
-    try expectEqual(date_to_isoweekdate(1980, 1, 1), .{ 1980, 1, 2 });
-    try expectEqual(date_to_isoweekdate(1980, 12, 28), .{ 1980, 52, 7 });
-    try expectEqual(date_to_isoweekdate(1980, 12, 29), .{ 1981, 1, 1 });
-    try expectEqual(date_to_isoweekdate(1980, 12, 30), .{ 1981, 1, 2 });
-    try expectEqual(date_to_isoweekdate(1980, 12, 31), .{ 1981, 1, 3 });
-    try expectEqual(date_to_isoweekdate(1981, 1, 1), .{ 1981, 1, 4 });
-    try expectEqual(date_to_isoweekdate(1981, 12, 31), .{ 1981, 53, 4 });
-    try expectEqual(date_to_isoweekdate(1982, 1, 1), .{ 1981, 53, 5 });
-    try expectEqual(date_to_isoweekdate(1982, 1, 2), .{ 1981, 53, 6 });
+    try expectEqual(date_to_isoweekdate(-4, 12, 30), ymd(-3, 1, 1));
+    try expectEqual(date_to_isoweekdate(-4, 12, 31), ymd(-3, 1, 2));
+    try expectEqual(date_to_isoweekdate(-3, 1, 1), ymd(-3, 1, 3));
+    try expectEqual(date_to_isoweekdate(-1, 12, 31), ymd(-1, 52, 5));
+    try expectEqual(date_to_isoweekdate(0, 1, 1), ymd(-1, 52, 6));
+    try expectEqual(date_to_isoweekdate(0, 1, 2), ymd(-1, 52, 7));
+    try expectEqual(date_to_isoweekdate(0, 1, 3), ymd(0, 1, 1));
+    try expectEqual(date_to_isoweekdate(1970, 1, 1), ymd(1970, 1, 4));
+    try expectEqual(date_to_isoweekdate(1977, 1, 1), ymd(1976, 53, 6));
+    try expectEqual(date_to_isoweekdate(1977, 1, 2), ymd(1976, 53, 7));
+    try expectEqual(date_to_isoweekdate(1977, 12, 31), ymd(1977, 52, 6));
+    try expectEqual(date_to_isoweekdate(1978, 1, 1), ymd(1977, 52, 7));
+    try expectEqual(date_to_isoweekdate(1978, 1, 2), ymd(1978, 1, 1));
+    try expectEqual(date_to_isoweekdate(1978, 12, 31), ymd(1978, 52, 7));
+    try expectEqual(date_to_isoweekdate(1979, 1, 1), ymd(1979, 1, 1));
+    try expectEqual(date_to_isoweekdate(1979, 12, 30), ymd(1979, 52, 7));
+    try expectEqual(date_to_isoweekdate(1979, 12, 31), ymd(1980, 1, 1));
+    try expectEqual(date_to_isoweekdate(1980, 1, 1), ymd(1980, 1, 2));
+    try expectEqual(date_to_isoweekdate(1980, 12, 28), ymd(1980, 52, 7));
+    try expectEqual(date_to_isoweekdate(1980, 12, 29), ymd(1981, 1, 1));
+    try expectEqual(date_to_isoweekdate(1980, 12, 30), ymd(1981, 1, 2));
+    try expectEqual(date_to_isoweekdate(1980, 12, 31), ymd(1981, 1, 3));
+    try expectEqual(date_to_isoweekdate(1981, 1, 1), ymd(1981, 1, 4));
+    try expectEqual(date_to_isoweekdate(1981, 12, 31), ymd(1981, 53, 4));
+    try expectEqual(date_to_isoweekdate(1982, 1, 1), ymd(1981, 53, 5));
+    try expectEqual(date_to_isoweekdate(1982, 1, 2), ymd(1981, 53, 6));
 }
 
 const isoweekdate_to_date = date.isoweekdate_to_date;
 test isoweekdate_to_date {
-    try expectEqual(isoweekdate_to_date(-3, 1, 1), .{ -4, 12, 30 });
-    try expectEqual(isoweekdate_to_date(-3, 1, 2), .{ -4, 12, 31 });
-    try expectEqual(isoweekdate_to_date(-3, 1, 3), .{ -3, 1, 1 });
-    try expectEqual(isoweekdate_to_date(-1, 52, 5), .{ -1, 12, 31 });
-    try expectEqual(isoweekdate_to_date(-1, 52, 6), .{ 0, 1, 1 });
-    try expectEqual(isoweekdate_to_date(-1, 52, 7), .{ 0, 1, 2 });
-    try expectEqual(isoweekdate_to_date(0, 1, 1), .{ 0, 1, 3 });
-    try expectEqual(isoweekdate_to_date(1970, 1, 4), .{ 1970, 1, 1 });
-    try expectEqual(isoweekdate_to_date(1976, 53, 6), .{ 1977, 1, 1 });
-    try expectEqual(isoweekdate_to_date(1976, 53, 7), .{ 1977, 1, 2 });
-    try expectEqual(isoweekdate_to_date(1977, 52, 6), .{ 1977, 12, 31 });
-    try expectEqual(isoweekdate_to_date(1977, 52, 7), .{ 1978, 1, 1 });
-    try expectEqual(isoweekdate_to_date(1978, 1, 1), .{ 1978, 1, 2 });
-    try expectEqual(isoweekdate_to_date(1978, 52, 7), .{ 1978, 12, 31 });
-    try expectEqual(isoweekdate_to_date(1979, 1, 1), .{ 1979, 1, 1 });
-    try expectEqual(isoweekdate_to_date(1979, 52, 7), .{ 1979, 12, 30 });
-    try expectEqual(isoweekdate_to_date(1980, 1, 1), .{ 1979, 12, 31 });
-    try expectEqual(isoweekdate_to_date(1980, 1, 2), .{ 1980, 1, 1 });
-    try expectEqual(isoweekdate_to_date(1980, 52, 7), .{ 1980, 12, 28 });
-    try expectEqual(isoweekdate_to_date(1981, 1, 1), .{ 1980, 12, 29 });
-    try expectEqual(isoweekdate_to_date(1981, 1, 2), .{ 1980, 12, 30 });
-    try expectEqual(isoweekdate_to_date(1981, 1, 3), .{ 1980, 12, 31 });
-    try expectEqual(isoweekdate_to_date(1981, 1, 4), .{ 1981, 1, 1 });
-    try expectEqual(isoweekdate_to_date(1981, 53, 4), .{ 1981, 12, 31 });
-    try expectEqual(isoweekdate_to_date(1981, 53, 5), .{ 1982, 1, 1 });
-    try expectEqual(isoweekdate_to_date(1981, 53, 6), .{ 1982, 1, 2 });
+    try expectEqual(isoweekdate_to_date(-3, 1, 1), ymd(-4, 12, 30));
+    try expectEqual(isoweekdate_to_date(-3, 1, 2), ymd(-4, 12, 31));
+    try expectEqual(isoweekdate_to_date(-3, 1, 3), ymd(-3, 1, 1));
+    try expectEqual(isoweekdate_to_date(-1, 52, 5), ymd(-1, 12, 31));
+    try expectEqual(isoweekdate_to_date(-1, 52, 6), ymd(0, 1, 1));
+    try expectEqual(isoweekdate_to_date(-1, 52, 7), ymd(0, 1, 2));
+    try expectEqual(isoweekdate_to_date(0, 1, 1), ymd(0, 1, 3));
+    try expectEqual(isoweekdate_to_date(1970, 1, 4), ymd(1970, 1, 1));
+    try expectEqual(isoweekdate_to_date(1976, 53, 6), ymd(1977, 1, 1));
+    try expectEqual(isoweekdate_to_date(1976, 53, 7), ymd(1977, 1, 2));
+    try expectEqual(isoweekdate_to_date(1977, 52, 6), ymd(1977, 12, 31));
+    try expectEqual(isoweekdate_to_date(1977, 52, 7), ymd(1978, 1, 1));
+    try expectEqual(isoweekdate_to_date(1978, 1, 1), ymd(1978, 1, 2));
+    try expectEqual(isoweekdate_to_date(1978, 52, 7), ymd(1978, 12, 31));
+    try expectEqual(isoweekdate_to_date(1979, 1, 1), ymd(1979, 1, 1));
+    try expectEqual(isoweekdate_to_date(1979, 52, 7), ymd(1979, 12, 30));
+    try expectEqual(isoweekdate_to_date(1980, 1, 1), ymd(1979, 12, 31));
+    try expectEqual(isoweekdate_to_date(1980, 1, 2), ymd(1980, 1, 1));
+    try expectEqual(isoweekdate_to_date(1980, 52, 7), ymd(1980, 12, 28));
+    try expectEqual(isoweekdate_to_date(1981, 1, 1), ymd(1980, 12, 29));
+    try expectEqual(isoweekdate_to_date(1981, 1, 2), ymd(1980, 12, 30));
+    try expectEqual(isoweekdate_to_date(1981, 1, 3), ymd(1980, 12, 31));
+    try expectEqual(isoweekdate_to_date(1981, 1, 4), ymd(1981, 1, 1));
+    try expectEqual(isoweekdate_to_date(1981, 53, 4), ymd(1981, 12, 31));
+    try expectEqual(isoweekdate_to_date(1981, 53, 5), ymd(1982, 1, 1));
+    try expectEqual(isoweekdate_to_date(1981, 53, 6), ymd(1982, 1, 2));
 }
 
 const isoweeks_in_year = date.isoweeks_in_year;
@@ -345,24 +345,22 @@ const instant_to_secs = date.instant_to_secs;
 test instant_to_secs {
     try expectEqual(instant_to_secs(UNIX_EPOCH), .{ 0, 0 });
     try expectEqual(
-        instant_to_secs(date.instant_from_secs(date.RD_SECONDS_MAX)),
+        instant_to_secs(date.Instant.from_secs(date.RD_SECONDS_MAX)),
         .{ date.RD_SECONDS_MAX, 0 },
     );
     try expectEqual(
-        instant_to_secs(date.sub_instants(
-            UNIX_EPOCH,
-            date.instant_from_secs(-date.RD_SECONDS_MIN),
+        instant_to_secs(UNIX_EPOCH.sub(
+            date.Instant.from_secs(-date.RD_SECONDS_MIN),
         )),
         .{ date.RD_SECONDS_MIN, 0 },
     );
     try expectEqual(
-        instant_to_secs(date.instant_from_secs(date.RD_SECONDS_MAX + 1)),
+        instant_to_secs(date.Instant.from_secs(date.RD_SECONDS_MAX + 1)),
         null,
     );
     try expectEqual(
-        instant_to_secs(date.sub_instants(
-            UNIX_EPOCH,
-            date.instant_from_secs(-date.RD_SECONDS_MIN + 1),
+        instant_to_secs(UNIX_EPOCH.sub(
+            date.Instant.from_secs(-date.RD_SECONDS_MIN + 1),
         )),
         null,
     );
@@ -373,36 +371,34 @@ test secs_to_systemtime {
     try expectEqual(secs_to_systemtime(0, 0), UNIX_EPOCH);
     try expectEqual(
         secs_to_systemtime(date.RD_SECONDS_MAX, 0),
-        date.instant_from_secs(date.RD_SECONDS_MAX),
+        date.Instant.from_secs(date.RD_SECONDS_MAX),
     );
     try expectEqual(
         secs_to_systemtime(date.RD_SECONDS_MIN, 0),
-        date.sub_instants(UNIX_EPOCH, date.instant_from_secs(-date.RD_SECONDS_MIN)),
+        UNIX_EPOCH.sub(date.Instant.from_secs(-date.RD_SECONDS_MIN)),
     );
 }
 
 const systemtime_to_datetime = date.systemtime_to_datetime;
 test systemtime_to_datetime {
-    try expectEqual(systemtime_to_datetime(UNIX_EPOCH), .{ 1970, 1, 1, 0, 0, 0, 0 });
+    try expectEqual(systemtime_to_datetime(UNIX_EPOCH), date.DateTimeNs.init(1970, 1, 1, 0, 0, 0, 0));
     try expectEqual(
-        systemtime_to_datetime(date.instant_from_secs(date.RD_SECONDS_MAX)),
-        .{ date.YEAR_MAX, 12, 31, 23, 59, 59, 0 },
+        systemtime_to_datetime(date.Instant.from_secs(date.RD_SECONDS_MAX)),
+        date.DateTimeNs.init(date.YEAR_MAX, 12, 31, 23, 59, 59, 0),
     );
     try expectEqual(
-        systemtime_to_datetime(date.sub_instants(
-            UNIX_EPOCH,
-            date.instant_from_secs(-date.RD_SECONDS_MIN),
+        systemtime_to_datetime(UNIX_EPOCH.sub(
+            date.Instant.from_secs(-date.RD_SECONDS_MIN),
         )),
-        .{ date.YEAR_MIN, 1, 1, 0, 0, 0, 0 },
+        date.DateTimeNs.init(date.YEAR_MIN, 1, 1, 0, 0, 0, 0),
     );
     try expectEqual(
-        systemtime_to_datetime(date.instant_from_secs(date.RD_SECONDS_MAX + 1)),
+        systemtime_to_datetime(date.Instant.from_secs(date.RD_SECONDS_MAX + 1)),
         null,
     );
     try expectEqual(
-        systemtime_to_datetime(date.sub_instants(
-            UNIX_EPOCH,
-            date.instant_from_secs(-date.RD_SECONDS_MIN + 1),
+        systemtime_to_datetime(UNIX_EPOCH.sub(
+            date.Instant.from_secs(-date.RD_SECONDS_MIN + 1),
         )),
         null,
     );
@@ -413,10 +409,14 @@ test datetime_to_systemtime {
     try expectEqual(datetime_to_systemtime(1970, 1, 1, 0, 0, 0, 0), UNIX_EPOCH);
     try expectEqual(
         datetime_to_systemtime(date.YEAR_MAX, 12, 31, 23, 59, 59, 0),
-        date.instant_from_secs(date.RD_SECONDS_MAX),
+        date.Instant.from_secs(date.RD_SECONDS_MAX),
     );
     try expectEqual(
         datetime_to_systemtime(date.YEAR_MIN, 1, 1, 0, 0, 0, 0),
-        date.sub_instants(UNIX_EPOCH, date.instant_from_secs(-date.RD_SECONDS_MIN)),
+        UNIX_EPOCH.sub(date.Instant.from_secs(-date.RD_SECONDS_MIN)),
     );
+}
+
+test {
+    _ = @import("tests2.zig");
 }
