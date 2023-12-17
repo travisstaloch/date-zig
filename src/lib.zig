@@ -36,8 +36,8 @@
 //!
 //! // conversions to and from sytem times represented as `std.time.Instant`
 //! try expectEqual(systemtime_to_datetime(UNIX_EPOCH), .{1970, 1, 1, 0, 0, 0, 0});
-//! try expectEqual(systemtime_to_datetime(instant_from_secs(1684574678)), .{2023, 5, 20, 9, 24, 38, 0});
-//! try expectEqual(datetime_to_systemtime(2023, 5, 20, 9, 24, 38, 0), instant_from_secs(1684574678));
+//! try expectEqual(systemtime_to_datetime(Instant.from_secs(1684574678)), .{2023, 5, 20, 9, 24, 38, 0});
+//! try expectEqual(datetime_to_systemtime(2023, 5, 20, 9, 24, 38, 0), Instant.from_secs(1684574678));
 //! ```
 //!
 //! # Background
@@ -114,48 +114,63 @@ const is_posix = switch (builtin.os.tag) {
     .windows => false,
     else => true,
 };
-const Instant = std.time.Instant;
 
-pub const UNIX_EPOCH = instant_from_secs(0);
+pub const Instant = extern struct {
+    timestamp: if (is_posix) std.os.timespec else u64,
+    pub fn order(self: Instant, other: Instant) std.math.Order {
+        // windows and wasi timestamps are in u64 which is easily comparible
+        if (!is_posix) {
+            return std.math.order(self.timestamp, other.timestamp);
+        }
 
-pub fn instant_from_secs(secs: i64) Instant {
-    return .{
-        .timestamp = if (is_posix)
-            .{ .tv_sec = secs, .tv_nsec = 0 }
-        else
-            // TODO decide how to handle overflow
-            // @intCast(secs * std.time.ns_per_s) };
-            unreachable,
-    };
-}
+        var ord = std.math.order(self.timestamp.tv_sec, other.timestamp.tv_sec);
+        if (ord == .eq) {
+            ord = std.math.order(self.timestamp.tv_nsec, other.timestamp.tv_nsec);
+        }
+        return ord;
+    }
 
-pub fn instant_from_secs_ns(secs: i64, nsecs: u32) Instant {
-    return .{
-        .timestamp = if (is_posix)
-            .{ .tv_sec = secs, .tv_nsec = nsecs }
-        else
-            // TODO decide how to handle overflow
-            // @intCast(secs * std.time.ns_per_s + nsecs) };
-            unreachable,
-    };
-}
+    pub fn from_secs(secs: i64) Instant {
+        return .{
+            .timestamp = if (is_posix)
+                .{ .tv_sec = secs, .tv_nsec = 0 }
+            else
+                // TODO decide how to handle overflow
+                // @intCast(secs * std.time.ns_per_s) };
+                unreachable,
+        };
+    }
 
-/// comptute self - other
-pub fn sub_instants(self: Instant, other: Instant) Instant {
-    if (is_posix) {
-        const secs, const nsec = if (self.timestamp.tv_nsec >= other.timestamp.tv_nsec)
-            .{
-                self.timestamp.tv_sec - other.timestamp.tv_sec,
-                self.timestamp.tv_nsec - other.timestamp.tv_nsec,
-            }
-        else
-            .{
-                (self.timestamp.tv_sec - other.timestamp.tv_sec - 1),
-                self.timestamp.tv_nsec + std.time.ns_per_s - other.timestamp.tv_nsec,
-            };
-        return .{ .timestamp = .{ .tv_sec = secs, .tv_nsec = nsec } };
-    } else return .{ .timestamp = self.timestamp - other.timestamp };
-}
+    pub fn from_secs_ns(secs: i64, nsecs: u32) Instant {
+        return .{
+            .timestamp = if (is_posix)
+                .{ .tv_sec = secs, .tv_nsec = nsecs }
+            else
+                // TODO decide how to handle overflow
+                // @intCast(secs * std.time.ns_per_s + nsecs) };
+                unreachable,
+        };
+    }
+
+    /// comptute self - other
+    pub fn sub(self: Instant, other: Instant) Instant {
+        if (is_posix) {
+            const secs, const nsec = if (self.timestamp.tv_nsec >= other.timestamp.tv_nsec)
+                .{
+                    self.timestamp.tv_sec - other.timestamp.tv_sec,
+                    self.timestamp.tv_nsec - other.timestamp.tv_nsec,
+                }
+            else
+                .{
+                    (self.timestamp.tv_sec - other.timestamp.tv_sec - 1),
+                    self.timestamp.tv_nsec + std.time.ns_per_s - other.timestamp.tv_nsec,
+                };
+            return .{ .timestamp = .{ .tv_sec = secs, .tv_nsec = nsec } };
+        } else return .{ .timestamp = self.timestamp - other.timestamp };
+    }
+};
+
+pub const UNIX_EPOCH = Instant.from_secs(0);
 
 /// Adjustment from Unix epoch to make calculations use positive integers
 ///
@@ -182,37 +197,37 @@ const SECS_OFFSET: i64 = DAY_OFFSET * SECS_IN_DAY;
 ///
 /// Years earlier than this are not supported and will likely produce incorrect
 /// results.
-pub const YEAR_MIN: i32 = -1467999;
+pub export const YEAR_MIN: i32 = -1467999;
 
 /// Maximum supported year for conversion
 ///
 /// Years later than this are not supported and will likely produce incorrect
 /// results.
-pub const YEAR_MAX: i32 = 1471744;
+pub export const YEAR_MAX: i32 = 1471744;
 
 /// Minimum Rata Die for conversion
 ///
 /// Rata die days earlier than this are not supported and will likely produce incorrect
 /// results.
-pub const RD_MIN: i32 = date_to_rd(YEAR_MIN, 1, 1);
+pub export const RD_MIN: i32 = date_to_rd(YEAR_MIN, 1, 1);
 
 /// Maximum Rata Die for conversion
 ///
 /// Rata die days later than this are not supported and will likely produce incorrect
 /// results.
-pub const RD_MAX: i32 = date_to_rd(YEAR_MAX, 12, 31);
+pub export const RD_MAX: i32 = date_to_rd(YEAR_MAX, 12, 31);
 
 /// Minimum Rata Die in seconds for conversion
 ///
 /// Rata die seconds earlier than this are not supported and will likely produce incorrect
 /// results.
-pub const RD_SECONDS_MIN: i64 = RD_MIN * SECS_IN_DAY;
+pub export const RD_SECONDS_MIN: i64 = RD_MIN * SECS_IN_DAY;
 
 /// Maximum Rata die in seconds for conversion
 ///
 /// Rata die seconds later than this are not supported and will likely produce incorrect
 /// results.
-pub const RD_SECONDS_MAX: i64 = RD_MAX * SECS_IN_DAY + SECS_IN_DAY - 1;
+pub export const RD_SECONDS_MAX: i64 = RD_MAX * SECS_IN_DAY + SECS_IN_DAY - 1;
 
 /// Convenience constants, mostly for input validation
 ///
@@ -220,78 +235,107 @@ pub const RD_SECONDS_MAX: i64 = RD_MAX * SECS_IN_DAY + SECS_IN_DAY - 1;
 /// library and the values are wholly unremarkable.
 pub const consts = struct {
     /// Minimum value for week
-    pub const WEEK_MIN: u8 = 1;
+    pub export const WEEK_MIN: u8 = 1;
     /// Maximum value for week
-    pub const WEEK_MAX: u8 = 53;
+    pub export const WEEK_MAX: u8 = 53;
     /// Minimum value for month
-    pub const MONTH_MIN: u8 = 1;
+    pub export const MONTH_MIN: u8 = 1;
     /// Maximum value for month
-    pub const MONTH_MAX: u8 = 12;
+    pub export const MONTH_MAX: u8 = 12;
     /// Minimum value for day of month
-    pub const DAY_MIN: u8 = 1;
+    pub export const DAY_MIN: u8 = 1;
     /// Maximum value for day of month
-    pub const DAY_MAX: u8 = 31;
+    pub export const DAY_MAX: u8 = 31;
     /// Minimum value for day of week
-    pub const WEEKDAY_MIN: u8 = 1;
+    pub export const WEEKDAY_MIN: u8 = 1;
     /// Maximum value for day of week
-    pub const WEEKDAY_MAX: u8 = 7;
+    pub export const WEEKDAY_MAX: u8 = 7;
     /// Minimum value for hours
-    pub const HOUR_MIN: u8 = 0;
+    pub export const HOUR_MIN: u8 = 0;
     /// Maximum value for hours
-    pub const HOUR_MAX: u8 = 23;
+    pub export const HOUR_MAX: u8 = 23;
     /// Minimum value for minutes
-    pub const MINUTE_MIN: u8 = 0;
+    pub export const MINUTE_MIN: u8 = 0;
     /// Maximum value for minutes
-    pub const MINUTE_MAX: u8 = 59;
+    pub export const MINUTE_MAX: u8 = 59;
     /// Minimum value for seconds
-    pub const SECOND_MIN: u8 = 0;
+    pub export const SECOND_MIN: u8 = 0;
     /// Maximum value for seconds
-    pub const SECOND_MAX: u8 = 59;
+    pub export const SECOND_MAX: u8 = 59;
     /// Minimum value for nanoseconds
-    pub const NANOSECOND_MIN: u32 = 0;
+    pub export const NANOSECOND_MIN: u32 = 0;
     /// Maximum value for nanoseconds
-    pub const NANOSECOND_MAX: u32 = 999_999_999;
+    pub export const NANOSECOND_MAX: u32 = 999_999_999;
 
     /// January month value
-    pub const JANUARY: u8 = 1;
+    pub export const JANUARY: u8 = 1;
     /// February month value
-    pub const FEBRUARY: u8 = 2;
+    pub export const FEBRUARY: u8 = 2;
     /// March month value
-    pub const MARCH: u8 = 3;
+    pub export const MARCH: u8 = 3;
     /// April month value
-    pub const APRIL: u8 = 4;
+    pub export const APRIL: u8 = 4;
     /// May month value
-    pub const MAY: u8 = 5;
+    pub export const MAY: u8 = 5;
     /// June month value
-    pub const JUNE: u8 = 6;
+    pub export const JUNE: u8 = 6;
     /// July month value
-    pub const JULY: u8 = 7;
+    pub export const JULY: u8 = 7;
     /// August month value
-    pub const AUGUST: u8 = 8;
+    pub export const AUGUST: u8 = 8;
     /// September month value
-    pub const SEPTEMBER: u8 = 9;
+    pub export const SEPTEMBER: u8 = 9;
     /// October month value
-    pub const OCTOBER: u8 = 10;
+    pub export const OCTOBER: u8 = 10;
     /// November month value
-    pub const NOVEMBER: u8 = 11;
+    pub export const NOVEMBER: u8 = 11;
     /// December month value
-    pub const DECEMBER: u8 = 12;
+    pub export const DECEMBER: u8 = 12;
 
     /// Monday day of week value
-    pub const MONDAY: u8 = 1;
+    pub export const MONDAY: u8 = 1;
     /// Tuesday day of week value
-    pub const TUESDAY: u8 = 2;
+    pub export const TUESDAY: u8 = 2;
     /// Wednesday day of week value
-    pub const WEDNESDAY: u8 = 3;
+    pub export const WEDNESDAY: u8 = 3;
     /// Thursday day of week value
-    pub const THURSDAY: u8 = 4;
+    pub export const THURSDAY: u8 = 4;
     /// Friday day of week value
-    pub const FRIDAY: u8 = 5;
+    pub export const FRIDAY: u8 = 5;
     /// Saturday day of week value
-    pub const SATURDAY: u8 = 6;
+    pub export const SATURDAY: u8 = 6;
     /// Sunday day of week value
-    pub const SUNDAY: u8 = 7;
+    pub export const SUNDAY: u8 = 7;
 };
+
+pub const Ymd = extern struct {
+    y: i32,
+    m: u8,
+    d: u8,
+    pub fn init(y: i32, m: u8, d: u8) Ymd {
+        return .{ .y = y, .m = m, .d = d };
+    }
+};
+
+pub const DateTimeNs = extern struct {
+    y: i32,
+    m: u8,
+    d: u8,
+    h: u8,
+    min: u8,
+    sec: u8,
+    nsec: u32,
+    pub fn init(y: i32, m: u8, d: u8, h: u8, min: u8, sec: u8, nsec: u32) DateTimeNs {
+        return .{ .y = y, .m = m, .d = d, .h = h, .min = min, .sec = sec, .nsec = nsec };
+    }
+};
+
+pub fn Option(comptime T: type) type {
+    return extern struct {
+        value: T,
+        has_value: bool,
+    };
+}
 
 // OPTIMIZATION NOTES:
 // - addition and substraction is the same speed regardless of signed or unsigned
@@ -331,7 +375,7 @@ pub const consts = struct {
 /// > Neri C, Schneider L. "*Euclidean affine functions and their application to
 /// > calendar algorithms*". Softw Pract Exper. 2022;1-34. doi:
 /// > [10.1002/spe.3172](https://onlinelibrary.wiley.com/doi/full/10.1002/spe.3172).
-pub fn rd_to_date(rd: i32) struct { i32, u8, u8 } {
+pub export fn rd_to_date(rd: i32) Ymd {
     std.debug.assert(rd >= RD_MIN and rd <= RD_MAX); //given rata die is out of range");
     const n0: u32 = @intCast(rd +% DAY_OFFSET);
     // century
@@ -353,7 +397,7 @@ pub fn rd_to_date(rd: i32) struct { i32, u8, u8 } {
     const y = (@as(i32, @intCast(y1))) -% (YEAR_OFFSET);
     const m = if (j != 0) m1 - 12 else m1;
     const d = d1 + 1;
-    return .{ y, @intCast(m), @intCast(d) };
+    return Ymd.init(y, @intCast(m), @intCast(d));
 }
 
 /// Convert Gregorian date to Rata Die
@@ -387,16 +431,17 @@ pub fn rd_to_date(rd: i32) struct { i32, u8, u8 } {
 /// > Neri C, Schneider L. "*Euclidean affine functions and their application to
 /// > calendar algorithms*". Softw Pract Exper. 2022;1-34. doi:
 /// > [10.1002/spe.3172](https://onlinelibrary.wiley.com/doi/full/10.1002/spe.3172).
-pub fn date_to_rd(y0: i32, m0: u8, d0: u8) i32 {
-    std.debug.assert(y0 >= YEAR_MIN and y0 <= YEAR_MAX); //given year is out of range");
-    std.debug.assert(m0 >= consts.MONTH_MIN and m0 <= consts.MONTH_MAX); //given month is out of range");
-    std.debug.assert(d0 >= consts.DAY_MIN and d0 <= days_in_month(y0, m0)); //given day is out of range");
+pub export fn date_to_rd(y0: i32, m0: u8, d0: u8) i32 {
+    std.debug.assert(YEAR_MIN <= y0 and y0 <= YEAR_MAX); //given year is out of range");
+    std.debug.assert(consts.MONTH_MIN <= m0 and m0 <= consts.MONTH_MAX); //given month is out of range");
+    std.debug.assert(consts.DAY_MIN <= d0 and d0 <= days_in_month(y0, m0)); //given day is out of range");
+
     const y1: u32 = @intCast(y0 +% YEAR_OFFSET);
     // map
     const jf: u32 = @intFromBool(m0 < 3);
-    const y2 = y1 - jf;
+    const y2 = y1 -% jf;
     const m1 = @as(u32, m0) + 12 * jf;
-    const d1 = @as(u32, d0) - 1;
+    const d1 = @as(u32, d0) -% 1;
     // century
     const c = y2 / 100;
     // year
@@ -404,7 +449,7 @@ pub fn date_to_rd(y0: i32, m0: u8, d0: u8) i32 {
     // month
     const m = (979 * m1 - 2919) / 32;
     // result
-    const n = y3 + m + d1;
+    const n = y3 +% m +% d1;
     return @as(i32, @intCast(n)) -% DAY_OFFSET;
 }
 
@@ -465,7 +510,7 @@ pub fn date_to_rd(y0: i32, m0: u8, d0: u8) i32 {
 /// However, since `2^64 / 7` must be truncated, the result is an approximation
 /// that works provided that m is not too large but, still, large enough for our
 /// purposes.
-pub fn rd_to_weekday(n: i32) u8 {
+pub export fn rd_to_weekday(n: i32) u8 {
     std.debug.assert(n >= RD_MIN and n <= RD_MAX); //given rata die is out of range");
     const P64_OVER_SEVEN: u64 = (1 << 64) / 7;
     return @truncate(((@as(u64, @intCast(n -% RD_MIN)) + 1) *% P64_OVER_SEVEN) >> 61);
@@ -504,7 +549,7 @@ pub fn rd_to_weekday(n: i32) u8 {
 ///
 /// Simply converts date to rata die and then rata die to weekday.
 ///
-pub fn date_to_weekday(y: i32, m: u8, d: u8) u8 {
+pub export fn date_to_weekday(y: i32, m: u8, d: u8) u8 {
     const rd = date_to_rd(y, m, d);
     return rd_to_weekday(rd);
 }
@@ -535,17 +580,17 @@ pub fn date_to_weekday(y: i32, m: u8, d: u8) u8 {
 ///
 /// Simple incrementation with manual overflow checking and carry. Relatively
 /// speedy, but not fully optimized.
-pub fn next_date(y: i32, m: u8, d: u8) struct { i32, u8, u8 } {
+pub export fn next_date(y: i32, m: u8, d: u8) Ymd {
     std.debug.assert(y >= YEAR_MIN and y <= YEAR_MAX); //given year is out of range");
     std.debug.assert(m >= consts.MONTH_MIN and m <= consts.MONTH_MAX); //given month is out of range");
     std.debug.assert(d >= consts.DAY_MIN and d <= days_in_month(y, m)); //given day is out of range");
     std.debug.assert(y != YEAR_MAX or m != consts.MONTH_MAX or d != consts.DAY_MAX); // "next date is out of range"
     return if (d < 28 or d < days_in_month(y, m))
-        .{ y, m, d + 1 }
+        Ymd.init(y, m, d + 1)
     else if (m < 12)
-        .{ y, m + 1, 1 }
+        Ymd.init(y, m + 1, 1)
     else
-        .{ y + 1, 1, 1 };
+        Ymd.init(y + 1, 1, 1);
 }
 
 /// Calculate previous Gregorian date given a Gregorian date
@@ -574,17 +619,17 @@ pub fn next_date(y: i32, m: u8, d: u8) struct { i32, u8, u8 } {
 ///
 /// Simple decrementation with manual underflow checking and carry. Relatively
 /// speedy, but not fully optimized.
-pub fn prev_date(y: i32, m: u8, d: u8) struct { i32, u8, u8 } {
+pub export fn prev_date(y: i32, m: u8, d: u8) Ymd {
     std.debug.assert(y >= YEAR_MIN and y <= YEAR_MAX); //given year is out of range");
     std.debug.assert(m >= consts.MONTH_MIN and m <= consts.MONTH_MAX); //given month is out of range");
     std.debug.assert(d >= consts.DAY_MIN and d <= days_in_month(y, m)); //given day is out of range");
     std.debug.assert(y != YEAR_MIN or m != consts.MONTH_MIN or d != consts.DAY_MIN); // "previous date is out of range"
     return if (d > 1)
-        .{ y, m, d - 1 }
+        Ymd.init(y, m, d - 1)
     else if (m > 1)
-        .{ y, m - 1, days_in_month(y, m - 1) }
+        Ymd.init(y, m - 1, days_in_month(y, m - 1))
     else
-        .{ y - 1, 12, 31 };
+        Ymd.init(y - 1, 12, 31);
 }
 
 /// Split total seconds to days, hours, minutes and seconds
@@ -667,7 +712,7 @@ pub fn secs_to_dhms(secs0: i64) struct { i32, u8, u8, u8 } {
 /// # Algorithm
 ///
 /// Algorithm is simple multiplication, method provided only as convenience.
-pub fn dhms_to_secs(d: i32, h: u8, m: u8, s: u8) i64 {
+pub export fn dhms_to_secs(d: i32, h: u8, m: u8, s: u8) i64 {
     std.debug.assert(d >= RD_MIN and d <= RD_MAX); //given rata die is out of range");
     std.debug.assert(h >= consts.HOUR_MIN and h <= consts.HOUR_MAX); //given hour is out of range");
     std.debug.assert(m >= consts.MINUTE_MIN and m <= consts.MINUTE_MAX); //given minute is out of range");
@@ -704,8 +749,8 @@ pub fn dhms_to_secs(d: i32, h: u8, m: u8, s: u8) i64 {
 /// Combination of existing functions for convenience only.
 pub fn secs_to_datetime(secs: i64) struct { i32, u8, u8, u8, u8, u8 } {
     const days, const hh, const mm, const ss = secs_to_dhms(secs);
-    const y, const m, const d = rd_to_date(days);
-    return .{ y, m, d, hh, mm, ss };
+    const ymd = rd_to_date(days);
+    return .{ ymd.y, ymd.m, ymd.d, hh, mm, ss };
 }
 
 /// Convert year, month, day, hours, minutes and seconds to total seconds
@@ -736,7 +781,7 @@ pub fn secs_to_datetime(secs: i64) struct { i32, u8, u8, u8, u8, u8 } {
 /// # Algorithm
 ///
 /// Algorithm is simple multiplication, method provided only as convenience.
-pub fn datetime_to_secs(y: i32, m: u8, d: u8, hh: u8, mm: u8, ss: u8) i64 {
+pub export fn datetime_to_secs(y: i32, m: u8, d: u8, hh: u8, mm: u8, ss: u8) i64 {
     const days = date_to_rd(y, m, d);
     return dhms_to_secs(days, hh, mm, ss);
 }
@@ -762,7 +807,7 @@ pub fn datetime_to_secs(y: i32, m: u8, d: u8, hh: u8, mm: u8, ss: u8) i64 {
 ///
 /// Algorithm is Neri-Schneider from C++now 2023 conference:
 /// > https://github.com/boostcon/cppnow_presentations_2023/blob/main/cppnow_slides/Speeding_Date_Implementing_Fast_Calendar_Algorithms.pdf
-pub fn is_leap_year(y: i32) bool {
+pub export fn is_leap_year(y: i32) bool {
     std.debug.assert(y >= YEAR_MIN and y <= YEAR_MAX); //given year is out of range");
     // Using `%` instead of `&` causes compiler to emit branches instead. This
     // is faster in a tight loop due to good branch prediction, but probably
@@ -799,8 +844,8 @@ pub fn is_leap_year(y: i32) bool {
 ///
 /// Algorithm is Neri-Schneider from C++now 2023 conference:
 /// > https://github.com/boostcon/cppnow_presentations_2023/blob/main/cppnow_slides/Speeding_Date_Implementing_Fast_Calendar_Algorithms.pdf
-pub fn days_in_month(y: i32, m: u8) u8 {
-    std.debug.assert(m >= consts.MONTH_MIN and m <= consts.MONTH_MAX); //given month is out of range");
+pub export fn days_in_month(y: i32, m: u8) u8 {
+    std.debug.assert(consts.MONTH_MIN <= m and m <= consts.MONTH_MAX); //given month is out of range");
     return if (m != 2)
         30 | (m ^ (m >> 3))
     else if (is_leap_year(y))
@@ -841,14 +886,14 @@ pub fn days_in_month(y: i32, m: u8) u8 {
 /// # Algorithm
 ///
 /// Algorithm is hand crafted and not significantly optimized.
-pub fn rd_to_isoweekdate(rd: i32) struct { i32, u8, u8 } {
+pub export fn rd_to_isoweekdate(rd: i32) Ymd {
     std.debug.assert(rd >= RD_MIN and rd <= RD_MAX); //given rata die is out of range");
     const wd = rd_to_weekday(rd);
     const rdt = rd + @rem(4 - @as(i32, wd), 7);
-    const y, _, _ = rd_to_date(rdt);
-    const ys = date_to_rd(y, 1, 1);
+    const ymd = rd_to_date(rdt);
+    const ys = date_to_rd(ymd.y, 1, 1);
     const w: u8 = @truncate(@as(u32, @bitCast(@divTrunc(rdt - ys, 7) + 1)));
-    return .{ y, w, wd };
+    return Ymd.init(ymd.y, w, wd);
 }
 
 /// Convert [ISO week date](https://en.wikipedia.org/wiki/ISO_week_date) to Rata Die
@@ -886,7 +931,7 @@ pub fn rd_to_isoweekdate(rd: i32) struct { i32, u8, u8 } {
 /// # Algorithm
 ///
 /// Algorithm is hand crafted and not significantly optimized.
-pub fn isoweekdate_to_rd(y: i32, w: u8, d: u8) i32 {
+pub export fn isoweekdate_to_rd(y: i32, w: u8, d: u8) i32 {
     std.debug.assert(y >= YEAR_MIN and y <= YEAR_MAX); //given year is out of range");
     std.debug.assert(w >= consts.WEEK_MIN and w <= isoweeks_in_year(y)); //given week is out of range");
     std.debug.assert(d >= consts.WEEKDAY_MIN and d <= consts.WEEKDAY_MAX); // "given weekday is out of range"
@@ -929,7 +974,7 @@ pub fn isoweekdate_to_rd(y: i32, w: u8, d: u8) i32 {
 /// # Algorithm
 ///
 /// Simply converts date to rata die and then rata die to ISO week date.
-pub fn date_to_isoweekdate(y: i32, m: u8, d: u8) struct { i32, u8, u8 } {
+pub export fn date_to_isoweekdate(y: i32, m: u8, d: u8) Ymd {
     const rd = date_to_rd(y, m, d);
     return rd_to_isoweekdate(rd);
 }
@@ -968,7 +1013,7 @@ pub fn date_to_isoweekdate(y: i32, m: u8, d: u8) struct { i32, u8, u8 } {
 /// # Algorithm
 ///
 /// Simply converts ISO week date to rata die and then rata die to date.
-pub fn isoweekdate_to_date(y: i32, w: u8, d: u8) struct { i32, u8, u8 } {
+pub export fn isoweekdate_to_date(y: i32, w: u8, d: u8) Ymd {
     const rd = isoweekdate_to_rd(y, w, d);
     return rd_to_date(rd);
 }
@@ -998,7 +1043,7 @@ pub fn isoweekdate_to_date(y: i32, w: u8, d: u8) struct { i32, u8, u8 } {
 /// # Algorithm
 ///
 /// Algorithm is hand crafted and not significantly optimized.
-pub fn isoweeks_in_year(y: i32) u8 {
+pub export fn isoweeks_in_year(y: i32) u8 {
     std.debug.assert(y >= YEAR_MIN and y <= YEAR_MAX); //given year is out of range");
     const wd = date_to_weekday(y, 1, 1);
     const l = is_leap_year(y);
@@ -1023,10 +1068,10 @@ pub fn isoweeks_in_year(y: i32) u8 {
 ///
 /// ```
 /// try expectEqual(systemtime_to_secs(UNIX_EPOCH), .{0, 0};
-/// try expectEqual(systemtime_to_secs(instant_from_secs_ns(1, 0)), .{1, 0};
-/// try expectEqual(systemtime_to_secs(instant_from_secs_ns(0, 1)), .{0, 1};
-/// try expectEqual(systemtime_to_secs(sub_instants(UNIX_EPOCH, instant_from_secs_ns(1, 0))), .{-1, 0};
-/// try expectEqual(systemtime_to_secs(sub_instants(UNIX_EPOCH, instant_from_secs_ns(0, 1))), .{-1, 999_999_999};
+/// try expectEqual(systemtime_to_secs(Instant.from_secs_ns(1, 0)), .{1, 0};
+/// try expectEqual(systemtime_to_secs(Instant.from_secs_ns(0, 1)), .{0, 1};
+/// try expectEqual(systemtime_to_secs(UNIX_EPOCH.sub(Instant.from_secs_ns(1, 0))), .{-1, 0};
+/// try expectEqual(systemtime_to_secs(UNIX_EPOCH.sub(Instant.from_secs_ns(0, 1))), .{-1, 999_999_999};
 /// ```
 ///
 /// # Algorithm
@@ -1036,10 +1081,10 @@ pub fn isoweeks_in_year(y: i32) u8 {
 pub fn instant_to_secs(instant: Instant) ?struct { i64, u32 } {
     switch (instant.order(UNIX_EPOCH)) {
         .gt, .eq => {
-            const dur = sub_instants(instant, UNIX_EPOCH);
+            const dur = instant.sub(UNIX_EPOCH);
             if (is_posix) {
                 const secs: i64 = dur.timestamp.tv_sec;
-                const nsecs: u32 = @intCast(dur.timestamp.tv_nsec);
+                const nsecs = std.math.cast(u32, dur.timestamp.tv_nsec) orelse return null;
                 if (secs > RD_SECONDS_MAX) return null;
                 return .{ secs, nsecs };
             } else {
@@ -1051,16 +1096,16 @@ pub fn instant_to_secs(instant: Instant) ?struct { i64, u32 } {
             }
         },
         else => {
-            const dur = sub_instants(UNIX_EPOCH, instant);
+            const dur = UNIX_EPOCH.sub(instant);
             if (is_posix) {
                 var secs: i64 = dur.timestamp.tv_sec;
-                var nsecs: u32 = @intCast(dur.timestamp.tv_nsec);
+                var nsecs = dur.timestamp.tv_nsec;
                 if (nsecs > 0) {
                     secs += 1;
                     nsecs = 1_000_000_000 - nsecs;
                 }
                 if (secs > -RD_SECONDS_MIN) return null;
-                return .{ -secs, nsecs };
+                return .{ -secs, std.math.cast(u32, nsecs) orelse return null };
             } else {
                 // TODO non posix
                 unreachable;
@@ -1089,11 +1134,11 @@ pub fn instant_to_secs(instant: Instant) ?struct { i64, u32 } {
 ///
 /// ```
 /// try expectEqual(secs_to_systemtime(0, 0), UNIX_EPOCH);
-/// try expectEqual(secs_to_systemtime(0, 1), instant_from_secs_ns(0, 1));
-/// try expectEqual(secs_to_systemtime(1, 0), instant_from_secs_ns(1, 0));
-/// try expectEqual(secs_to_systemtime(-1, 999_999_999), sub_instants(UNIX_EPOCH(instant_from_secs_ns(0, 1))));
-/// try expectEqual(secs_to_systemtime(-1, 0), sub_instants(UNIX_EPOCH(instant_from_secs_ns(1, 0))));
-/// try expectEqual(secs_to_systemtime(-2, 999_999_999), sub_instants(UNIX_EPOCH(instant_from_secs_ns(1, 1))));
+/// try expectEqual(secs_to_systemtime(0, 1), Instant.from_secs_ns(0, 1));
+/// try expectEqual(secs_to_systemtime(1, 0), Instant.from_secs_ns(1, 0));
+/// try expectEqual(secs_to_systemtime(-1, 999_999_999), UNIX_EPOCH.sub(nstant.from_secs_ns(0, 1))));
+/// try expectEqual(secs_to_systemtime(-1, 0), UNIX_EPOCH.sub(nstant.from_secs_ns(1, 0))));
+/// try expectEqual(secs_to_systemtime(-2, 999_999_999), UNIX_EPOCH.sub(nstant.from_secs_ns(1, 1))));
 /// ```
 ///
 /// # Algorithm
@@ -1103,11 +1148,11 @@ pub fn secs_to_systemtime(secs: i64, nsecs: u32) ?Instant {
     std.debug.assert(secs >= RD_SECONDS_MIN and secs <= RD_SECONDS_MAX); //given seconds is out of range");
     std.debug.assert(nsecs >= consts.NANOSECOND_MIN and nsecs <= consts.NANOSECOND_MAX); // "given nanoseconds is out of range"
     return if (secs >= 0)
-        instant_from_secs_ns(secs, nsecs)
+        Instant.from_secs_ns(secs, nsecs)
     else if (nsecs > 0)
-        sub_instants(UNIX_EPOCH, instant_from_secs_ns(-secs - 1, 1_000_000_000 - nsecs))
+        UNIX_EPOCH.sub(Instant.from_secs_ns(-secs - 1, 1_000_000_000 - nsecs))
     else
-        sub_instants(UNIX_EPOCH, instant_from_secs(-secs));
+        UNIX_EPOCH.sub(Instant.from_secs(-secs));
 }
 
 /// Convert [`std.time.Instant`] to year, month, day, hours, minutes,
@@ -1125,19 +1170,27 @@ pub fn secs_to_systemtime(secs: i64, nsecs: u32) ?Instant {
 ///
 /// ```
 /// try expectEqual(systemtime_to_datetime(UNIX_EPOCH), .{1970, 1, 1, 0, 0, 0, 0});
-/// try expectEqual(systemtime_to_datetime(instant_from_secs(1684574678)), .{2023, 5, 20, 9, 24, 38, 0});
-/// try expectEqual(systemtime_to_datetime(sub_instants(UNIX_EPOCH, instant_from_secs(1))), .{1969, 12, 31, 23, 59, 59, 0});
-/// try expectEqual(systemtime_to_datetime(sub_instants(UNIX_EPOCH, instant_from_secs_ns(0, 1))), .{1969, 12, 31, 23, 59, 59, 999_999_999});
+/// try expectEqual(systemtime_to_datetime(Instant.from_secs(1684574678)), .{2023, 5, 20, 9, 24, 38, 0});
+/// try expectEqual(systemtime_to_datetime(UNIX_EPOCH.sub(Instant.from_secs(1))), .{1969, 12, 31, 23, 59, 59, 0});
+/// try expectEqual(systemtime_to_datetime(UNIX_EPOCH.sub(Instant.from_secs_ns(0, 1))), .{1969, 12, 31, 23, 59, 59, 999_999_999});
 /// ```
 ///
 /// # Algorithm
 ///
 /// Combination of existing functions for convenience only.
-pub fn systemtime_to_datetime(st: Instant) ?struct { i32, u8, u8, u8, u8, u8, u32 } {
+pub fn systemtime_to_datetime(st: Instant) ?DateTimeNs {
     const secs, const nsecs = instant_to_secs(st) orelse return null;
     const days, const hh, const mm, const ss = secs_to_dhms(secs);
-    const year, const month, const day = rd_to_date(days);
-    return .{ year, month, day, hh, mm, ss, nsecs };
+    const ymd = rd_to_date(days);
+    return DateTimeNs.init(ymd.y, ymd.m, ymd.d, hh, mm, ss, nsecs);
+}
+
+pub export fn systemtime_to_datetime2(st: Instant) Option(DateTimeNs) {
+    // std.debug.print("systemtime_to_datetime2({})\n", .{st});
+    return if (systemtime_to_datetime(st)) |i|
+        .{ .value = i, .has_value = true }
+    else
+        .{ .value = undefined, .has_value = false };
 }
 
 /// Convert year, month, day, hours, minutes, seconds and nanoseconds to
@@ -1168,6 +1221,21 @@ pub fn datetime_to_systemtime(y: i32, m: u8, d: u8, hh: u8, mm: u8, ss: u8, nsec
     const days = date_to_rd(y, m, d);
     const secs = dhms_to_secs(days, hh, mm, ss);
     return secs_to_systemtime(secs, nsec);
+}
+
+pub export fn datetime_to_systemtime2(
+    y: i32,
+    m: u8,
+    d: u8,
+    hh: u8,
+    mm: u8,
+    ss: u8,
+    nsec: u32,
+) Option(Instant) {
+    return if (datetime_to_systemtime(y, m, d, hh, mm, ss, nsec)) |i|
+        .{ .value = i, .has_value = true }
+    else
+        .{ .value = undefined, .has_value = false };
 }
 
 const std = @import("std");
